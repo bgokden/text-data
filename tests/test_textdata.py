@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 import pytest
-from textdata.textdata import embed, TextItem, TextData
+from thetextdata.textdata import embed, TextItem, TextData
 from unittest.mock import Mock
 
 from veriservice import veriservice_pb2 as pb
