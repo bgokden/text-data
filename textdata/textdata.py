@@ -12,7 +12,7 @@ import tensorflow_text  # noqa: F401
 
 
 #  load one of the models: ['en_use_md', 'en_use_lg', 'xx_use_md', 'xx_use_lg']
-nlp = spacy_universal_sentence_encoder.load_model('xx_use_lg')
+nlp = spacy_universal_sentence_encoder.load_model("xx_use_lg")
 
 
 def embed(text: str) -> np.ndarray:
@@ -30,6 +30,7 @@ class TextItem:
     Text item is a representation of text that can be converted into veri entries
     Text can be added as multiple parts or as one part that can be split into sentences.
     """
+
     def __init__(self, info: str = None, text=None, split_threshold_min=20):
         """
         Initize a text item
@@ -63,7 +64,7 @@ class TextItem:
         """
         texts = []
         for text in self.texts:
-            paragraphs = list(filter(lambda x: x != '', text.split('\n\n')))
+            paragraphs = list(filter(lambda x: x != "", text.split("\n\n")))
             for paragraph in paragraphs:
                 text = paragraph.replace("\n", " ").strip()
                 if len(text) > self.split_threshold_min:
@@ -100,9 +101,9 @@ class TextItem:
         for text in self.texts:
             feature = embed(text)
             yield {
-                'label': json.dumps({"text": text}),
-                'group_label': self.info,
-                'feature': feature.tolist()
+                "label": json.dumps({"text": text}),
+                "group_label": self.info,
+                "feature": feature.tolist(),
             }
 
     def get_features(self) -> Generator[np.ndarray, None, None]:
@@ -118,16 +119,19 @@ class TextData:
     """
     Data Wrapper to query text or insert items to Veri
     """
-    def __init__(self,
-                 client: VeriClient,
-                 limit=200,
-                 group_limit=5,
-                 timeout=100000,
-                 result_limit=10,
-                 score_func_name="AnnoyCosineSimilarity",
-                 higher_is_better=True,
-                 cache_duration=60,
-                 prioritize_context=False):
+
+    def __init__(
+        self,
+        client: VeriClient,
+        limit=200,
+        group_limit=5,
+        timeout=100000,
+        result_limit=10,
+        score_func_name="AnnoyCosineSimilarity",
+        higher_is_better=True,
+        cache_duration=60,
+        prioritize_context=False,
+    ):
         """
         Initlize a TextData to use search/insert functions of Veri
 
@@ -158,7 +162,9 @@ class TextData:
         :return: None
         """
         for entry in item.get_entries():
-            self.client.insert(entry['feature'], entry['label'].encode(), group_label=entry['group_label'].encode())
+            self.client.insert(
+                entry["feature"], entry["label"].encode(), group_label=entry["group_label"].encode()
+            )
 
     def search(self, text, context=[], **kwargs) -> pd.DataFrame:
         """
@@ -184,38 +190,44 @@ class TextData:
         """
         vectors = item.get_features()
         context_vectors = context.get_features()
-        positive = kwargs.get('positive', [])
-        negative = kwargs.get('negative', [])
+        positive = kwargs.get("positive", [])
+        negative = kwargs.get("negative", [])
         filters = []
         for text in positive:
-            filters.append("..#(text%\"{}\")".format(text))
+            filters.append('..#(text%"{}")'.format(text))
         for text in negative:
-            filters.append("..#(text!%\"{}\")".format(text))
-        result = self.client.search(vectors,
-                                    limit=kwargs.get('limit', self.limit),
-                                    group_limit=kwargs.get('group_limit', self.group_limit),
-                                    timeout=kwargs.get('timeout', self.timeout),
-                                    score_func_name=kwargs.get('score_func_name', self.score_func_name),
-                                    higher_is_better=kwargs.get('higher_is_better', self.higher_is_better),
-                                    context_vectors=context_vectors,
-                                    prioritize_context=kwargs.get('prioritize_context', self.prioritize_context),
-                                    cache_duration=kwargs.get("cache_duration", self.cache_duration),
-                                    filters=filters,
-                                    group_filters=kwargs.get("group_filters", []),
-                                    result_limit=kwargs.get('result_limit', self.result_limit))
+            filters.append('..#(text!%"{}")'.format(text))
+        result = self.client.search(
+            vectors,
+            limit=kwargs.get("limit", self.limit),
+            group_limit=kwargs.get("group_limit", self.group_limit),
+            timeout=kwargs.get("timeout", self.timeout),
+            score_func_name=kwargs.get("score_func_name", self.score_func_name),
+            higher_is_better=kwargs.get("higher_is_better", self.higher_is_better),
+            context_vectors=context_vectors,
+            prioritize_context=kwargs.get("prioritize_context", self.prioritize_context),
+            cache_duration=kwargs.get("cache_duration", self.cache_duration),
+            filters=filters,
+            group_filters=kwargs.get("group_filters", []),
+            result_limit=kwargs.get("result_limit", self.result_limit),
+        )
         results = []
         for r in result:
             group_label_data = json.loads(r.datum.key.groupLabel)
             label_data = json.loads(r.datum.value.label)
-            results.append({
-                'score': r.score,
-                'label': label_data['text'],
-                'group_label': group_label_data,
-                'feature': r.datum.key.feature,
-            })
+            results.append(
+                {
+                    "score": r.score,
+                    "label": label_data["text"],
+                    "group_label": group_label_data,
+                    "feature": r.datum.key.feature,
+                }
+            )
         rs = pd.DataFrame(results)
-        if 'group_label' in rs.columns:
-            return pd.concat([rs.drop(['group_label'], axis=1), rs['group_label'].apply(pd.Series)], axis=1)
+        if "group_label" in rs.columns:
+            return pd.concat(
+                [rs.drop(["group_label"], axis=1), rs["group_label"].apply(pd.Series)], axis=1
+            )
         return rs
 
 
@@ -224,13 +236,14 @@ def get_hosts():
     Utility Method to Get Environment Variable
     :return: HOSTS environment variable or default Value.
     """
-    return os.getenv('HOSTS', 'localhost:5678')
+    return os.getenv("HOSTS", "localhost:5678")
 
 
 class SearchAPI:
     """
     Search API to be used in the controller
     """
+
     def __init__(self, name, client=None, hosts=get_hosts()):
         """
         Initilaize API Wrapper to Veri Text Data
