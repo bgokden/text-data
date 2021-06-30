@@ -11,9 +11,9 @@ deps:  ## Install dependencies
 	python -m pip install black coverage flake8 flit mccabe mypy pylint pytest tox tox-gh-actions
 
 lint:  ## Lint and static-check
-	python -m flake8 textdata
-	python -m pylint textdata
-	python -m mypy textdata
+	python -m flake8 thetextdata
+	python -m pylint thetextdata
+	python -m mypy thetextdata
 
 publish:  ## Publish to PyPi
 	python -m flit publish
