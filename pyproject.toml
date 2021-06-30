@@ -3,7 +3,7 @@ requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
-module = "textdata"
+module = "thetextdata"
 author = "Berk Gokden"
 author-email = "berkgokden@gmail.com"
 home-page = "https://github.com/bgokden/text-data"
