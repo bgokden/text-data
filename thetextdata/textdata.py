@@ -9,7 +9,10 @@ import numpy as np
 import pandas as pd
 import spacy_universal_sentence_encoder
 import tensorflow_text  # noqa: F401
-
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.neighbors import NearestNeighbors
+import random
 
 #  load one of the models: ['en_use_md', 'en_use_lg', 'xx_use_md', 'xx_use_lg']
 nlp = spacy_universal_sentence_encoder.load_model("xx_use_lg")
@@ -113,6 +116,53 @@ class TextItem:
         """
         for text in self.texts:
             yield embed(text)
+
+    def reduce_texts(self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10):
+        if len(self.texts) <= min(maximum_hint, limit):
+            return
+        sentences = []
+        sen_vector = []
+        for t in self.texts:
+            sentences.append(t)
+            sen_vector.append(embed(t))
+
+        minimum = min(len(sentences), minimum_hint)
+        maximum = min(len(sentences), maximum_hint)
+        if maximum < minimum:
+            maximum = maximum + 1
+        range_n_clusters = range(minimum, maximum)
+        max_score = 0
+        best_y_kmeans = None
+        best_kmeans_model = None
+        rand_int = random.randint(10, 1000)
+        for n_clusters in range_n_clusters:
+            kmeans = KMeans(n_clusters, init='k-means++', random_state=rand_int)
+            y_kmeans = kmeans.fit_predict(sen_vector)
+            silhouette_avg = silhouette_score(sen_vector, y_kmeans)
+            if silhouette_avg >= max_score or best_y_kmeans is None:
+                max_score = silhouette_avg
+                best_y_kmeans = y_kmeans
+                best_kmeans_model = kmeans
+
+        y_kmeans = best_y_kmeans
+        kmeans_model = best_kmeans_model
+
+        # finding and printing the nearest sentence vector from cluster centroid
+
+        nbrs = NearestNeighbors(n_neighbors=1).fit(sen_vector)
+
+        index_list = []
+        for i in range(len(kmeans_model.cluster_centers_)):
+            _, indexes = nbrs.kneighbors([kmeans_model.cluster_centers_[i]])
+            index_list.append(indexes[0][0])
+
+        cluster_sizes = np.bincount(y_kmeans)
+        ind = list(range(len(cluster_sizes)))
+
+        result = []
+        for _, index in sorted(zip(cluster_sizes, ind), reverse=True)[:limit]:
+            result.append(sentences[index_list[index]])
+        self.texts = result
 
 
 class TextData:

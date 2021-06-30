@@ -91,3 +91,26 @@ def test_text_data_item_search():
     result = text_data.search(text)
     veri_client_mock.search.assert_called()
     assert len(result) == 1
+
+
+def test_text_item_reduce():
+    info = "{id:'id0'}"
+    input_texts = ["A corona virus title",
+            "Corona vaccine.",
+            "Another virus title.",
+            "Corona is spreding.",
+            "Vaccines are important.",
+            "We are late on vaccines.",
+            "There is a new Match.",
+            "Goool, we are gonna win.",
+            "Goalkeeper is nowhere to be found.",
+            "Another coronavirus thing.",
+            "Vaccines are again important.",
+            "Football is nice."]
+    item = TextItem(info=info, text=input_texts)
+    item.calculate_texts()
+    item.reduce_texts(2, 5, 10)
+    texts = item.get_texts()
+    texts.sort()
+    assert 3 == len(texts)
+    assert texts == ['Another coronavirus thing.', 'Football is nice.', 'Vaccines are important.']

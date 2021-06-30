@@ -17,8 +17,9 @@ requires = [
     "spacy==3.0.5",
     "spacy_universal_sentence_encoder==0.4.1",
     "veriservice==0.0.33",
-    "pandas==1.1.2",
+    "pandas>=1.1.2",
     "tensorflow_text==2.4.3",
+    "scikit-learn>=0.24.1"
 ]
 
 [tool.black]
