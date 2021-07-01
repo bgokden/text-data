@@ -117,7 +117,10 @@ class TextItem:
         for text in self.texts:
             yield embed(text)
 
-    def reduce_texts(self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10):
+    def reduce_texts(self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10): # noqa  C901
+        """
+        Reduce texts, decrease the number of elements by finding out topics and getting core elements of it.
+        """
         if len(self.texts) <= min(maximum_hint, limit):
             return
         sentences = []
