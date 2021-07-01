@@ -117,7 +117,9 @@ class TextItem:
         for text in self.texts:
             yield embed(text)
 
-    def reduce_texts(self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10): # noqa  C901
+    def reduce_texts(  # noqa: C901
+        self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10
+    ):
         """
         Reduce texts, decrease the number of elements by finding out topics and getting core elements of it.
         """
@@ -139,7 +141,7 @@ class TextItem:
         best_kmeans_model = None
         rand_int = random.randint(10, 1000)
         for n_clusters in range_n_clusters:
-            kmeans = KMeans(n_clusters, init='k-means++', random_state=rand_int)
+            kmeans = KMeans(n_clusters, init="k-means++", random_state=rand_int)
             y_kmeans = kmeans.fit_predict(sen_vector)
             silhouette_avg = silhouette_score(sen_vector, y_kmeans)
             if silhouette_avg >= max_score or best_y_kmeans is None:
