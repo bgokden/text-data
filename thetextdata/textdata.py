@@ -188,7 +188,7 @@ class TextData:
         prioritize_context=False,
     ):
         """
-        Initlize a TextData to use search/insert functions of Veri
+        Initialize a TextData to use search/insert functions of Veri
 
         :param client: Veri Client to use as backend to Data
         :param limit: Limit of top entries used in query
@@ -210,7 +210,7 @@ class TextData:
         self.prioritize_context = prioritize_context
         self.cache_duration = cache_duration
 
-    def insert(self, item) -> None:
+    def insert(self, item, **kwargs) -> None:
         """
         Inserts a text item to veri
         :param item: a text item that represents one or multiple texts
@@ -218,7 +218,10 @@ class TextData:
         """
         for entry in item.get_entries():
             self.client.insert(
-                entry["feature"], entry["label"].encode(), group_label=entry["group_label"].encode()
+                entry["feature"],
+                entry["label"].encode(),
+                group_label=entry["group_label"].encode(),
+                **kwargs
             )
 
     def search(self, text, context=[], **kwargs) -> pd.DataFrame:
