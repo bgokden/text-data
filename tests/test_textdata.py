@@ -109,7 +109,7 @@ def test_text_item_reduce():
             "Football is nice."]
     item = TextItem(info=info, text=input_texts)
     item.calculate_texts()
-    item.reduce_texts(2, 5, 10)
+    item.reduce_texts(2, 5, 10, 12)
     texts = item.get_texts()
     texts.sort()
     assert 3 == len(texts)

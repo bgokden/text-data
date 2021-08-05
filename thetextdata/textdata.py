@@ -1,7 +1,5 @@
-import os
 import json
 from typing import List, Generator, Dict
-import re
 
 import spacy  # noqa: F401
 from veriservice import VeriClient
@@ -34,14 +32,16 @@ class TextItem:
     Text can be added as multiple parts or as one part that can be split into sentences.
     """
 
-    def __init__(self, info: str = None, text=None, split_threshold_min=20):
+    def __init__(self, info: str = None, text=None, extra_info=None, split_threshold_min=20):
         """
-        Initize a text item
+        Initialize a text item
         :param info: recommended to be a json metedata information.
         :param text: string or list of string that is included in the text item.
+        :param extra_info: dict of extra values to be used for filtering text
         :param split_threshold_min: minimum threshold to be split into sentences
         """
         self.info = info
+        self.extra_info = extra_info
         self.texts = []
         if text is not None:
             if isinstance(text, str):
@@ -103,8 +103,11 @@ class TextItem:
         self.calculate_texts()
         for text in self.texts:
             feature = embed(text)
+            label_dict = {"text": text}
+            if self.extra_info:
+                label_dict = {**self.extra_info, **label_dict}
             yield {
-                "label": json.dumps({"text": text}),
+                "label": json.dumps(label_dict),
                 "group_label": self.info,
                 "feature": feature.tolist(),
             }
@@ -118,7 +121,7 @@ class TextItem:
             yield embed(text)
 
     def reduce_texts(  # noqa: C901
-        self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10
+        self, minimum_hint: int = 2, maximum_hint: int = 5, limit: int = 10, rand_int: int = 0
     ):
         """
         Reduce texts, decrease the number of elements by finding out topics and getting core elements of it.
@@ -139,7 +142,8 @@ class TextItem:
         max_score = 0
         best_y_kmeans = None
         best_kmeans_model = None
-        rand_int = random.randint(10, 1000)
+        if rand_int == 0:
+            rand_int = random.randint(10, 1000)
         for n_clusters in range_n_clusters:
             kmeans = KMeans(n_clusters, init="k-means++", random_state=rand_int)
             y_kmeans = kmeans.fit_predict(sen_vector)
@@ -250,7 +254,7 @@ class TextData:
         context_vectors = context.get_features()
         positive = kwargs.get("positive", [])
         negative = kwargs.get("negative", [])
-        filters = []
+        filters = kwargs.get("filters", [])
         for text in positive:
             filters.append('..#(text%"{}")'.format(text))
         for text in negative:
@@ -276,86 +280,15 @@ class TextData:
             results.append(
                 {
                     "score": r.score,
-                    "label": label_data["text"],
+                    "label": label_data,
                     "group_label": group_label_data,
                     "feature": r.datum.key.feature,
                 }
             )
         rs = pd.DataFrame(results)
+        rs = pd.concat([rs.drop(["label"], axis=1), rs["label"].apply(pd.Series)], axis=1)
         if "group_label" in rs.columns:
             return pd.concat(
                 [rs.drop(["group_label"], axis=1), rs["group_label"].apply(pd.Series)], axis=1
             )
         return rs
-
-
-def get_hosts():
-    """
-    Utility Method to Get Environment Variable
-    :return: HOSTS environment variable or default Value.
-    """
-    return os.getenv("HOSTS", "localhost:5678")
-
-
-class SearchAPI:
-    """
-    Search API to be used in the controller
-    """
-
-    def __init__(self, name, client=None, hosts=get_hosts()):
-        """
-        Initilaize API Wrapper to Veri Text Data
-        :param name: name of the dataset
-        :param hosts: Comma separated list of network addresses
-        """
-        self.name = name
-        self.client = client
-        if self.client is None:
-            self.client = VeriClient(hosts, name)
-        self.data = TextData(self.client)
-
-    def ready(self):
-        """
-        This can be used to check if liblaries are loaded.
-        :return:
-        """
-        return True
-
-    def search(self, texts: List[str], context: List[str], options: Dict = {}) -> pd.DataFrame:
-        """
-        Wrapper for text data search
-        :param texts: List of string to search
-        :param context: List of string as context
-        :param options: Optional parameters
-        :return: The Query Result as Pandas Dataframe
-        """
-        item_to_search = TextItem(text=texts)
-        item_to_search.calculate_texts()
-        text_list = item_to_search.get_texts()
-        positive_list = []
-        for text in text_list:
-            positive_list.extend(re.findall('"([^"]*)"', text))
-        item_context = TextItem(text=context)
-        item_context.calculate_texts()
-        return self.data.item_search(item_to_search, item_context, positive=positive_list)
-
-    def autocomlete(self, text: str, context: List[str], options: Dict = {}):
-        """
-        Autocmplete is a limited search in dataset.
-        :param text: text to complete
-        :param context: List of string as context
-        :param options: Optional parameters
-        :return: The Query Result as Pandas Dataframe
-        """
-        return self.data.search(text, context=context, group_limit=1, result_limit=5)
-
-    def insert(self, title: str, text: str, options: Dict = {}):
-        """
-        Inserts a data to Veri by converting it to text item
-        :param title:
-        :param text:
-        :param options:
-        :return:
-        """
-        item = TextItem(info=json.dumps({"title": title}), text=text)
-        return self.data.insert(item)
