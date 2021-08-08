@@ -286,7 +286,8 @@ class TextData:
                 }
             )
         rs = pd.DataFrame(results)
-        rs = pd.concat([rs.drop(["label"], axis=1), rs["label"].apply(pd.Series)], axis=1)
+        if "label" in rs.columns:
+            rs = pd.concat([rs.drop(["label"], axis=1), rs["label"].apply(pd.Series)], axis=1)
         if "group_label" in rs.columns:
             return pd.concat(
                 [rs.drop(["group_label"], axis=1), rs["group_label"].apply(pd.Series)], axis=1
